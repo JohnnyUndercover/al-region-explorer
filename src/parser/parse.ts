@@ -17,30 +17,31 @@ export function parse(uri: Uri): PragmaParseResult[] {
 
         let lineUppercase = lineStr.toUpperCase();
         let character = lineUppercase[0] === '#' ? 0 : lineUppercase.indexOf('#');
-        const ifPos = lineUppercase.indexOf('#IF ');
-        let pos = ifPos + 3;
+        const ifPos = lineUppercase.indexOf('#REGION ');
+        let pos = ifPos + 7;
         if (ifPos !== character) {
-            const elifPos = lineUppercase.indexOf('#ELIF ');
+            const elifPos = lineUppercase.indexOf('#ENDREGION ');
             if (elifPos !== character) {
                 continue;
             }
-            pos = elifPos + 5;
+            pos = elifPos + 10;
         }
 
-        lineUppercase = lineUppercase.substring(pos);
-        lineUppercase = lineUppercase.split('//')[0]; //get rid off comments
-        lineUppercase = lineUppercase.replace(/[(]/g, ' ');
-        lineUppercase = lineUppercase.replace(/[)]/g, ' ');
+        // Regex explenation:
+        // /        - Delimiter for js. Defines the begin of the expression
+        // \[       - \[ matches the character [ 
+        // [^\]]*   - [^\]] Matches all characters that are not \]. 
+        // \]       - \] matches the character ]
+        // /        - Delimiter for js. Defines the begin of the expression
+        // g        - modifier: global. All matches (don't return after first match)
 
-        const parts = lineUppercase.trim().split(' ');
+        const regex = /\[[^\]]*\]/g;
+        const parts = lineUppercase.match(regex);
+        if (!parts) {
+            continue;
+        }
+
         for (let part of parts) {
-            part = part.trim();
-            switch(part) {
-                case 'AND':
-                case 'OR':
-                case 'NOT':
-                    continue;
-            }
             const result = results.find((result) => result.id === part);
             if (result) {
                 result.positions.push(new Position(line, character));
